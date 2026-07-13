@@ -1,6 +1,6 @@
 https://cede-webapps.epfl.ch/MOOCsCatalog/
-https://dsi-it-catalog.epfl.ch/
 https://dsi-it-catalog-test.epfl.ch/
+https://dsi-it-catalog.epfl.ch/
 https://edamonitoring.epfl.ch/grafana/d/k1JaxB57k/eda-license-monitor
 https://eerl-campaigns.epfl.ch/
 https://energyhub.epfl.ch
@@ -11,8 +11,12 @@ https://sisbdev.epfl.ch/contactforms/create
 https://vpi-startup-compass.pages.dev/
 https://water-portal-dev.epfl.ch/
 https://water-portal.epfl.ch/
+https://widget-wordpress.epfl.ch/
 https://www.medicosearch.ch/widget/api/iframe
 https://www.podcastics.com/player
 https://xzr9mzyjj6yyjv.embednotionpage.com/epfl-prototyping/DB-Ressources-Prototypage-6698b491b71a4db991312c96b0ddef99
 
-# Note: please specify full URL, starting with https://
+# Notes:
+# • Please specify full URL, starting with https://
+# • https://aaa.epfl.ch/ will allow any path, e.g. https://aaa.epfl.ch/bbb/
+# • The list is sorted alphabetically
