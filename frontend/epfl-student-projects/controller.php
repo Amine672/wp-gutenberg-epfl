@@ -35,8 +35,10 @@ function handle_isa($attributes)
   $professor_scipers = Utils::get_sanitized_attribute($attributes, 'professorScipers');
   $professor_scipers = preg_replace('/\s/', '', $professor_scipers);
 
-  if ($section == '')
-    return '';
+  if ($section == '') {
+    // Show validation error if section is empty
+    return Utils::render_user_msg(__("The form was not properly filled. Please select a section.", 'epfl'));
+  }
 
   $target_host = 'isa.epfl.ch';
   //$target_host = 'ditex-web.epfl.ch';
@@ -197,11 +199,18 @@ function epfl_student_projects_block($attributes, $inner_content)
 
   $api_source = Utils::get_sanitized_attribute($attributes, 'apiSource');
 
+  // Validation: Check if API source is selected
+  if (empty($api_source)) {
+    return Utils::render_user_msg(__("The form was not properly filled. Please select an API source.", 'epfl'));
+  }
+
   switch ($api_source) {
     case 'zen':
       return handle_zen($attributes);
     case 'isa':
       return handle_isa($attributes);
+    default:
+      return Utils::render_user_msg(__("The form was not properly filled. Invalid API source selected.", 'epfl'));
   }
 }
 
@@ -210,25 +219,63 @@ function handle_zen($attributes)
     $section = Utils::get_sanitized_attribute($attributes, 'section');
     $zenFetchMode = Utils::get_sanitized_attribute($attributes, 'zenFetchMode');
     $professorScipers = Utils::get_sanitized_attribute($attributes, 'professorScipers');
+    $onlyArchivedProjects = Utils::get_sanitized_attribute($attributes, 'onlyArchivedProjects', '') != '';
+    $onlyCurrentProjects = Utils::get_sanitized_attribute($attributes, 'onlyCurrentProjects', '') != '';
 
+    // Validation: Check if form is properly filled
+    if (empty($zenFetchMode)) {
+        return Utils::render_user_msg(__("The form was not properly filled. Please select a fetch mode (By Unit or By Professor SCIPER).", 'epfl'));
+    }
+    
+    if ($zenFetchMode === 'section' && empty($section)) {
+        return Utils::render_user_msg(__("The form was not properly filled. Please select a unit.", 'epfl'));
+    }
+    
+    if ($zenFetchMode === 'sciper' && empty($professorScipers)) {
+        return Utils::render_user_msg(__("The form was not properly filled. Please enter at least one professor SCIPER.", 'epfl'));
+    }
+
+    $archivedSuffix = $onlyArchivedProjects ? '/archived' : '';
 
     if ($zenFetchMode === 'sciper' && !empty($professorScipers)) {
         $sciper = preg_replace('/\s/', '', $professorScipers);
-        $url = "https://sti-zen.epfl.ch/api/public/projects/manager/" . $sciper;
+        $url = "https://sti-zen.epfl.ch/api/public/projects/manager/" . $sciper . $archivedSuffix;
     } else if ($zenFetchMode === 'section' && !empty($section)) {
-        $url = "https://sti-zen.epfl.ch/api/public/projects/unit/" . $section;
+        $url = "https://sti-zen.epfl.ch/api/public/projects/unit/" . $section . $archivedSuffix;
     } else {
-        return Utils::render_user_msg("Invalid fetch mode or missing parameters");
+        return Utils::render_user_msg(__("The form was not properly filled. Invalid fetch mode or missing parameters.", 'epfl'));
     }
 
     $items = Utils::zen_api_request($url);
 
-    if ($items === NULL) {
+    if ($items === NULL || $items === false || !is_array($items)) {
         return Utils::render_user_msg("Error getting project list from ZEN or project list is empty");
+    }
+
+    // Filter ongoing projects if requested
+    if ($onlyCurrentProjects) {
+        $items = array_filter($items, function($item) {
+            return isset($item['status']) && $item['status'] === 'ongoing';
+        });
+        $items = array_values($items);
     }
 
     // Sort initially by project title
     usort($items, 'EPFL\Plugins\Gutenberg\StudentProjects\sortByProjectNameZen');
+
+    // Collect all unique levels for filter buttons
+    $allLevels = array();
+    foreach ($items as $item) {
+        if (!empty($item['tags'])) {
+            foreach ($item['tags'] as $tag) {
+                if (isset($tag['tagType']['name']) && $tag['tagType']['name'] === 'Level') {
+                    $allLevels[$tag['name']] = true;
+                }
+            }
+        }
+    }
+    $allLevels = array_keys($allLevels);
+    sort($allLevels);
 
     ob_start();
     ?>
@@ -242,12 +289,32 @@ function handle_zen($attributes)
             <button class="btn btn-secondary sort"
                 onclick="sortProjects('id')"><?php _e('Sort by project ID', 'epfl'); ?></button>
             <button class="btn btn-secondary sort" onclick="sortProjects('date')"><?php _e('Sort by date', 'epfl') ?></button>
+            <?php if (!empty($allLevels)): ?>
+            <div style="margin-top: 8px;">
+                <span class="small text-muted" style="margin-right: 5px;"><?php _e('Filter by level:', 'epfl'); ?></span>
+                <button class="btn btn-sm btn-outline-secondary level-filter-btn active" data-level="all" onclick="filterByLevel('all')"><?php _e('All', 'epfl'); ?></button>
+                <?php foreach ($allLevels as $level): ?>
+                    <button class="btn btn-sm btn-outline-secondary level-filter-btn" data-level="<?php echo htmlspecialchars($level); ?>" onclick="filterByLevel('<?php echo htmlspecialchars($level); ?>')"><?php echo htmlspecialchars($level); ?></button>
+                <?php endforeach; ?>
+            </div>
+            <?php endif; ?>
         </div>
 
         <div class="list" id="projects-list" style="margin-bottom: 50px">
             <?php foreach ($items as $item): ?>
                 <section class="collapse-container project-item" data-title="<?php echo htmlspecialchars($item['title']); ?>"
-                  data-id="<?php echo $item['id']; ?>" data-date="<?php echo substr($item['createdAt'], 0, 10); ?>">
+                  data-id="<?php echo $item['id']; ?>" data-date="<?php echo substr($item['createdAt'], 0, 10); ?>"
+                  data-level="<?php
+                    $itemLevels = array();
+                    if (!empty($item['tags'])) {
+                      foreach ($item['tags'] as $tag) {
+                        if (isset($tag['tagType']['name']) && $tag['tagType']['name'] === 'Level') {
+                          $itemLevels[] = htmlspecialchars($tag['name']);
+                        }
+                      }
+                    }
+                    echo implode(',', $itemLevels);
+                  ?>">
                   <header class="collapse-title collapse-title-desktop collapsed" data-toggle="collapse"
                     data-target="#project-<?php echo $item['id']; ?>" aria-expanded="false"
                     aria-controls="project-<?php echo $item['id']; ?>">
@@ -256,8 +323,18 @@ function handle_zen($attributes)
                       <li class="project-id">ID: <?php echo $item['id']; ?></li>
                       <li class="project-status">Status: <?php echo htmlspecialchars($item['status']); ?></li>
                       <li class="project-date">Created At: <?php echo substr($item['createdAt'], 0, 10); ?></li>
-                      <?php if (!empty($item['endDate'])): ?>
-                        <li class="project-end-date">End Date: <?php echo substr($item['endDate'], 0, 10); ?></li>
+                      <?php
+                        $levels = array();
+                        if (!empty($item['tags'])) {
+                          foreach ($item['tags'] as $tag) {
+                            if (isset($tag['tagType']['name']) && $tag['tagType']['name'] === 'Level') {
+                              $levels[] = htmlspecialchars($tag['name']);
+                            }
+                          }
+                        }
+                        if (!empty($levels)):
+                      ?>
+                        <li class="project-level">Level: <?php echo implode(', ', $levels); ?></li>
                       <?php endif; ?>
                     </ul>
                   </header>
@@ -315,14 +392,27 @@ function handle_zen($attributes)
     </div>
 
     <script>
+        var activeLevelFilter = 'all';
+
         function filterProjects() {
             const input = document.getElementById('student-projects-search-input').value.toLowerCase();
             const projects = document.getElementsByClassName('project-item');
 
             Array.from(projects).forEach((project) => {
                 const title = project.getAttribute('data-title').toLowerCase();
-                project.style.display = title.includes(input) ? '' : 'none';
+                const matchesSearch = title.includes(input);
+                const matchesLevel = activeLevelFilter === 'all' || (project.dataset.level && project.dataset.level.split(',').includes(activeLevelFilter));
+                project.style.display = (matchesSearch && matchesLevel) ? '' : 'none';
             });
+        }
+
+        function filterByLevel(level) {
+            activeLevelFilter = level;
+            document.querySelectorAll('.level-filter-btn').forEach(function(btn) {
+                btn.classList.remove('active');
+            });
+            document.querySelector('.level-filter-btn[data-level="' + level + '"]').classList.add('active');
+            filterProjects();
         }
 
         function sortProjects(type) {
