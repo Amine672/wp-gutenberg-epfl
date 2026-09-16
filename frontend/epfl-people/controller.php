@@ -147,12 +147,16 @@ function epfl_people_block( $attributes ) {
         }
     }
 
+    // Take authorization token and base url from 12 factor configuration
+    $baseurl = getenv('PEOPLE_BASE_URL') ?: "https://people.epfl.ch";
+    $bearer = getenv('PEOPLE_BEARER_TOKEN');
+
     // the web service we use to retrieve the data
-    $url = "https://people.epfl.ch/cgi-bin/wsgetpeople/";
+    $url = "$baseurl/api/v0/wsgetpeople/";
     $url = add_query_arg($parameter, $url);
 
     // retrieve the data in JSON
-    $items = Utils::get_items($url, 0, 15);
+    $items = Utils::get_items($url, 0, 15, False, Array('Authorization' => "Bearer $bearer"));
 
     if (false === $items) {
         return Utils::render_user_msg("People block: Error retrieving items");
@@ -175,12 +179,8 @@ function epfl_people_block( $attributes ) {
         // Respect given order when sciper
         $scipers = array_map('intval', explode(',', $parameter['scipers']));
         $persons = epfl_people_sortArrayByArray($persons, $scipers);
-    } else if ("" !== $units || "" !== $doctoral_program || "" !== $groups) {
-        // Sort persons list alphabetically when units, doctoral program or groups
-        if (ALPHABETICAL_ORDER === $order) {
-            usort($persons, __NAMESPACE__.'\epfl_people_person_compare');
-        }
     }
+    // Otherwise, sorting is handled by People based on the person's name
 
     // copy the first unit in order of 'ordre' as main_unit
     foreach($persons as $index => $person){

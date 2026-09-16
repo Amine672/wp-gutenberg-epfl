@@ -113,7 +113,7 @@ Class Utils
      * @return decoded JSON data
      *          False in case of an error
      */
-    public static function get_items(string $url, $cache_time_sec=300, $timeout=5, $sslverify=True) {
+    public static function get_items(string $url, $cache_time_sec=300, $timeout=5, $sslverify=True, $heads=array()) {
         /* Generating unique transient ID. We cannot directly use URL (and replace some characters) because we are
         limited to 172 characters for transient identifiers (https://codex.wordpress.org/Transients_API) */
         $transient_id = 'epfl_'.md5($url);
@@ -136,7 +136,8 @@ Class Utils
         }
 
         $start = microtime(true);
-        $response = wp_remote_get($url, array( 'timeout' => $timeout, 'sslverify' => $sslverify ));
+        $response = wp_remote_get($url, array( 'timeout' => $timeout, 'sslverify' => $sslverify, 'headers' => $heads ));
+
         $end = microtime(true);
 
         // Logging call
@@ -188,6 +189,21 @@ Class Utils
      */
     public static function zen_api_request($url) {
 
+        if (!function_exists('curl_init')) {
+            // Fallback for environments without cURL (e.g. wp-now/php-wasm)
+            if (function_exists('wp_remote_get')) {
+                $response = wp_remote_get($url, array('timeout' => 10));
+                if (is_wp_error($response)) {
+                    error_log("API request failed: " . $response->get_error_message());
+                    return false;
+                }
+                $body = wp_remote_retrieve_body($response);
+                return json_decode($body, true);
+            }
+            error_log("API request failed: no cURL or wp_remote_get available");
+            return false;
+        }
+
         $curl = curl_init();
         curl_setopt($curl, CURLOPT_URL, $url);
         curl_setopt($curl, CURLOPT_RETURNTRANSFER, true);
@@ -204,11 +220,9 @@ Class Utils
 
         if (!$response) {
             error_log("API request failed: " . curl_error($curl));  // Log error to PHP error log
-            curl_close($curl);
             return false;
         }
 
-        curl_close($curl);
         $data = json_decode($response, true);
 
         return $data;
@@ -265,13 +279,21 @@ Class Utils
     }
 
     /**
-     * When you want to render into a var
-     * set $args to get some value for your php file ($path)
-     * https://stackoverflow.com/a/34600568
+     * Render $template_path with params `$params`
+     *
+     * @param $template_path The path of a PHP file to render (using `include()`)
+     *
+     * @param $params Template parameters (the `$params` variable will be in scope
+     *                within said `include()`)
+     *
+     * @return the rendered template as a string
      */
-    public static function render_php($path, array $params=null) {
+    public static function render_php($template_path, array $params) {
+        // Render into $var using `ob_start()` / `ob_get_contents()`,
+        // per https://stackoverflow.com/a/34600568:
         ob_start();
-        include($path);
+        // Note that $params is in scope for code `include`d this way:
+        include($template_path);
         $var = ob_get_contents();
         ob_end_clean();
         return $var;
