@@ -3,7 +3,7 @@
 /**
  * Plugin Name:     wp-gutenberg-epfl
  * Description:     EPFL Gutenberg Blocks
- * Version:         2.49.0
+ * Version:         2.56.0
  * Author:          WordPress EPFL Team
  * License:         GPL-2.0-or-later
  * License URI:     https://www.gnu.org/licenses/gpl-2.0.html
@@ -29,7 +29,7 @@ require_once plugin_dir_path( __FILE__ ) . 'frontend/init.php';
 // load .mo file for translation
 function epfl_gutenberg_load_textdomain() {
     $domain = 'epfl';
-    $locale = pll_current_language( 'locale' );
+    $locale = function_exists( 'pll_current_language' ) ? pll_current_language( 'locale' ) : get_locale();
     $mo_file = plugin_dir_path( __FILE__ ) . "languages/{$domain}-{$locale}.mo";
 
     if ( file_exists( $mo_file ) ) {

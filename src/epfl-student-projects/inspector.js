@@ -14,14 +14,17 @@ export default class InspectorControlsStudentProjects extends React.Component {
 		super(props);
 		this.state = {
 			sections: [],
+			schools: [],
 			apiSource: props.attributes.apiSource || "",
 			zenFetchMode: props.attributes.zenFetchMode || "",
+			zenSchool: props.attributes.zenSchool || "",
 		};
 	}
 
 	componentDidMount() {
 		if (this.state.apiSource) {
 			if (this.state.apiSource === "zen" && this.state.zenFetchMode) {
+				this.fetchSchools();
 				setTimeout(() => {
 					this.fetchData(this.state.apiSource);
 				}, 0);
@@ -37,19 +40,51 @@ export default class InspectorControlsStudentProjects extends React.Component {
 			prevState.apiSource !== this.state.apiSource &&
 			this.state.apiSource !== ""
 		) {
+			if (this.state.apiSource === "zen") {
+				this.fetchSchools();
+			}
 			this.fetchData(this.state.apiSource);
 		}
+	}
+
+	fetchSchools() {
+		const basePath =
+			"wp-content/plugins/wp-gutenberg-epfl/frontend/epfl-student-projects/get-schools-zen.php";
+		const entryPoint = window.location.href.replace(/wp-admin\/.*/, basePath);
+		axios
+			.get(entryPoint)
+			.then((response) => response.data)
+			.then((data) => {
+				if (!Array.isArray(data)) {
+					throw new TypeError("Expected an array but got " + typeof data);
+				}
+				const schoolOptions = data.map((school) => ({
+					label: school.name || school,
+					value: school.name || school,
+				}));
+				this.setState({ schools: schoolOptions });
+			})
+			.catch((error) => {
+				console.error("Error fetching schools:", error);
+				this.setState({ schools: [] });
+			});
 	}
 	fetchData(source) {
 		const basePath =
 			"wp-content/plugins/wp-gutenberg-epfl/frontend/epfl-student-projects/get-sections";
-		const entryPointProjects =
+		let entryPointProjects =
 			(source === "isa") || (source === "zen")
 				? window.location.href.replace(
 						/wp-admin\/.*/,
 						`${basePath}-${source}.php`,
 				  )
 				: null;
+
+		// Append school parameter for Project Portal unit fetching
+		if (source === "zen" && this.state.zenSchool) {
+			entryPointProjects += `?school=${encodeURIComponent(this.state.zenSchool)}`;
+		}
+
 		if (entryPointProjects === null && source !== "zen") {
 			return;
 		}
@@ -57,7 +92,12 @@ export default class InspectorControlsStudentProjects extends React.Component {
 		if (source === "zen") {
 			if (this.state.zenFetchMode === "sciper" && this.props.attributes.professorScipers) {
 				const sciper = this.props.attributes.professorScipers;
-				const zenApiUrl = `https://sti-zen.epfl.ch/api/public/projects/manager/${sciper}`;
+				const archived = this.props.attributes.onlyArchivedProjects ? "1" : "0";
+				const proxyBase =
+					"wp-content/plugins/wp-gutenberg-epfl/frontend/epfl-student-projects/get-projects-zen.php";
+				const zenApiUrl =
+					window.location.href.replace(/wp-admin\/.*/, proxyBase) +
+					`?sciper=${encodeURIComponent(sciper)}&archived=${archived}`;
 				axios
 					.get(zenApiUrl)
 					.then((response) => {
@@ -79,7 +119,7 @@ export default class InspectorControlsStudentProjects extends React.Component {
 
 					})
 					.catch((error) => {
-						console.error("Error fetching data from the Projects Database (Zen) API", error);
+						console.error("Error fetching data from the Project Portal API", error);
 						this.setState({ sections: [] });
 					});
 			} else if (this.state.zenFetchMode === "section" || this.state.zenFetchMode === "") {
@@ -157,6 +197,11 @@ export default class InspectorControlsStudentProjects extends React.Component {
 			value: section.value,
 		}));
 
+		const optionsSchoolsList = this.state.schools.map((school) => ({
+			label: school.label,
+			value: school.value,
+		}));
+
 		return (
 			<InspectorControls>
 				<PanelBody title={__("API Source")}>
@@ -166,17 +211,20 @@ export default class InspectorControlsStudentProjects extends React.Component {
 						options={[
 							{ label: "Select API", value: "" },
 							{ label: "ISA", value: "isa" },
-							{ label: "ZEN", value: "zen" },
+							{ label: "Project Portal", value: "zen" },
 						]}
 						onChange={(apiSource) => {
-							this.setState({ apiSource, zenFetchMode: "" });
-							setAttributes({ apiSource });
+							this.setState({ apiSource, zenFetchMode: "", zenSchool: "", sections: [] });
+							setAttributes({ apiSource, zenSchool: "", section: "" });
+							if (apiSource === "zen") {
+								this.fetchSchools();
+							}
 							this.fetchData(apiSource);
 						}}
 					/>
 				</PanelBody>
 				{this.state.apiSource === "zen" && (
-					<PanelBody title={__("ZEN Fetch Mode")}>
+					<PanelBody title={__("Project Portal Fetch Mode")}>
 						<SelectControl
 							label={__("Fetch By")}
 							value={this.state.zenFetchMode}
@@ -186,8 +234,11 @@ export default class InspectorControlsStudentProjects extends React.Component {
 								{ label: "By Professor SCIPER", value: "sciper" },
 							]}
 							onChange={(zenFetchMode) => {
-								this.setState({ zenFetchMode, sections: [] }, () => {
-									setAttributes({ zenFetchMode });
+								this.setState({ zenFetchMode, sections: [], zenSchool: "" }, () => {
+									setAttributes({ zenFetchMode, zenSchool: "", section: "" });
+									if (zenFetchMode === "section") {
+										this.fetchSchools();
+									}
 									this.fetchData(this.state.apiSource);
 								});
 							}}
@@ -195,6 +246,24 @@ export default class InspectorControlsStudentProjects extends React.Component {
 					</PanelBody>
 				)}
 				{this.state.apiSource === "zen" && this.state.zenFetchMode === "section" && (
+					<PanelBody title={__("School")}>
+						<SelectControl
+							label={__("Select School")}
+							value={this.state.zenSchool}
+							options={[
+								{ label: "Please choose a school", value: "" },
+								...optionsSchoolsList,
+							]}
+							onChange={(zenSchool) => {
+								this.setState({ zenSchool, sections: [] }, () => {
+									setAttributes({ zenSchool, section: "" });
+									this.fetchData(this.state.apiSource);
+								});
+							}}
+						/>
+					</PanelBody>
+				)}
+				{this.state.apiSource === "zen" && this.state.zenFetchMode === "section" && this.state.zenSchool && (
 					<PanelBody title={__("Unit")}>
 						<SelectControl
 							value={attributes.section}
@@ -241,12 +310,33 @@ export default class InspectorControlsStudentProjects extends React.Component {
 				)}
 				<PanelBody title={__("Filters", "epfl")}>
 					<ToggleControl
-						label={__("Only current projects", "epfl")}
+						label={__("Only ongoing projects", "epfl")}
 						checked={attributes.onlyCurrentProjects}
-						onChange={(onlyCurrentProjects) =>
-							setAttributes({ onlyCurrentProjects })
-						}
+						onChange={(onlyCurrentProjects) => {
+							setAttributes({ 
+								onlyCurrentProjects,
+								onlyArchivedProjects: onlyCurrentProjects ? false : attributes.onlyArchivedProjects
+							});
+						}}
 					/>
+					{this.state.apiSource === "zen" && (
+						<ToggleControl
+							label={__("Only archived projects", "epfl")}
+							checked={attributes.onlyArchivedProjects}
+							onChange={(onlyArchivedProjects) => {
+								setAttributes({ 
+									onlyArchivedProjects,
+									onlyCurrentProjects: onlyArchivedProjects ? false : attributes.onlyCurrentProjects
+								});
+								// Refetch data when archived filter changes
+								if (this.state.apiSource === "zen" && this.state.zenFetchMode === "sciper" && this.props.attributes.professorScipers) {
+									setTimeout(() => {
+										this.fetchData(this.state.apiSource);
+									}, 100);
+								}
+							}}
+						/>
+					)}
 					{this.state.apiSource === "isa" && (
 						<TextControl
 							label={__("Professor(s) sciper(s)", "epfl")}
