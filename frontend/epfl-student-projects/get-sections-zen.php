@@ -15,4 +15,8 @@ if ($school !== '') {
 }
 
 $response = Utils::zen_api_request($url);
+if ($response === false || $response === null) {
+    http_response_code(502);
+    $response = array('error' => 'Unable to reach the Project Portal. Please try again later.');
+}
 echo json_encode($response);

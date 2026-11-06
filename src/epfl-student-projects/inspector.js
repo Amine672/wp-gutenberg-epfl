@@ -6,8 +6,81 @@ import {
 	SelectControl,
 	ToggleControl,
 	TextControl,
+	FormTokenField,
+	Notice,
+	Spinner,
 } from "@wordpress/components";
-import { __ } from "@wordpress/i18n";
+import { __, sprintf, _n } from "@wordpress/i18n";
+
+const PROXY_BASE = "wp-content/plugins/wp-gutenberg-epfl/frontend/epfl-student-projects/";
+
+const proxyUrl = (file) =>
+	window.location.href.replace(/wp-admin\/.*/, PROXY_BASE + file);
+
+const IDLE = { state: "idle", error: "" };
+
+/**
+ * Error raised when the API answered, but with an error message (e.g. "No projects found
+ * for the specified managers"), as opposed to a network / server failure.
+ */
+class ApiAnswerError extends Error {}
+
+/** Builds a readable message from an axios / parsing error. */
+const errorMessage = (error) => {
+	const data = error && error.response && error.response.data;
+	if (data && typeof data.error === "string") {
+		return data.error;
+	}
+	if (error instanceof ApiAnswerError) {
+		return error.message;
+	}
+	if (error && error.response) {
+		return sprintf(__("The server answered with status %s.", "epfl"), error.response.status);
+	}
+	return __("The server could not be reached. Please check your connection and try again.", "epfl");
+};
+
+/** Fetches a proxy URL and returns the list it answers, or throws a meaningful error. */
+const fetchList = (url) =>
+	axios.get(url).then((response) => {
+		const data = response.data;
+		if (data && !Array.isArray(data) && typeof data.error === "string") {
+			throw new ApiAnswerError(data.error);
+		}
+		if (!Array.isArray(data)) {
+			throw new ApiAnswerError(__("Unexpected answer from the server.", "epfl"));
+		}
+		return data;
+	});
+
+const StatusNotice = ({ status, label, onRetry, emptyMessage, isEmpty }) => {
+	if (status.state === "loading") {
+		return (
+			<p>
+				<Spinner /> {sprintf(__("Loading %s…", "epfl"), label)}
+			</p>
+		);
+	}
+	if (status.state === "error") {
+		return (
+			<Notice
+				status="error"
+				isDismissible={false}
+				actions={onRetry ? [{ label: __("Retry", "epfl"), onClick: onRetry }] : []}
+			>
+				{sprintf(__("Unable to load the %1$s: %2$s", "epfl"), label, status.error)}
+			</Notice>
+		);
+	}
+	if (status.state === "ok" && isEmpty) {
+		return (
+			<Notice status="warning" isDismissible={false}>
+				{emptyMessage}
+			</Notice>
+		);
+	}
+	return null;
+};
 
 export default class InspectorControlsStudentProjects extends React.Component {
 	constructor(props) {
@@ -15,335 +88,515 @@ export default class InspectorControlsStudentProjects extends React.Component {
 		this.state = {
 			sections: [],
 			schools: [],
-			apiSource: props.attributes.apiSource || "",
-			zenFetchMode: props.attributes.zenFetchMode || "",
-			zenSchool: props.attributes.zenSchool || "",
+			tags: [],
+			projects: [],
+			status: {
+				schools: IDLE,
+				sections: IDLE,
+				tags: IDLE,
+				projects: IDLE,
+			},
 		};
+		// Used to ignore answers of outdated requests (e.g. while typing SCIPERs)
+		this.requestIds = {};
+		this.previewTimer = null;
 	}
 
 	componentDidMount() {
-		if (this.state.apiSource) {
-			if (this.state.apiSource === "zen" && this.state.zenFetchMode) {
+		const { apiSource, zenFetchMode } = this.props.attributes;
+		if (apiSource === "isa") {
+			this.fetchIsaSections();
+		} else if (apiSource === "zen") {
+			if (zenFetchMode === "section") {
 				this.fetchSchools();
-				setTimeout(() => {
-					this.fetchData(this.state.apiSource);
-				}, 0);
-			} else if (this.state.apiSource === "isa") {
-				this.fetchData(this.state.apiSource);
+				this.fetchZenUnits();
+			} else if (zenFetchMode === "school") {
+				this.fetchSchools();
+			} else if (zenFetchMode === "tag") {
+				this.fetchTags();
 			}
+			this.fetchProjectsPreview();
 		}
 	}
 
-	componentDidUpdate(prevProps, prevState) {
-		// Check if apiSource has changed
-		if (
-			prevState.apiSource !== this.state.apiSource &&
-			this.state.apiSource !== ""
-		) {
-			if (this.state.apiSource === "zen") {
-				this.fetchSchools();
-			}
-			this.fetchData(this.state.apiSource);
+	componentDidUpdate(prevProps) {
+		const keys = ["apiSource", "zenFetchMode", "section", "zenSchool", "professorScipers", "zenTags", "onlyArchivedProjects"];
+		const changed = keys.some((k) => prevProps.attributes[k] !== this.props.attributes[k]);
+		if (changed && this.props.attributes.apiSource === "zen") {
+			// Debounce, so we don't call the API on every keystroke
+			clearTimeout(this.previewTimer);
+			this.previewTimer = setTimeout(() => this.fetchProjectsPreview(), 500);
 		}
+	}
+
+	componentWillUnmount() {
+		clearTimeout(this.previewTimer);
+		this.unmounted = true;
+	}
+
+	setStatus(key, status) {
+		if (this.unmounted) return;
+		this.setState((prev) => ({ status: { ...prev.status, [key]: status } }));
+	}
+
+	/**
+	 * Runs a request for the given state key, handling loading / error status and stale answers.
+	 * `transform` maps the received list to what is stored in the state.
+	 */
+	load(key, url, transform) {
+		const requestId = (this.requestIds[key] || 0) + 1;
+		this.requestIds[key] = requestId;
+		this.setStatus(key, { state: "loading", error: "" });
+
+		fetchList(url)
+			.then((data) => {
+				if (this.unmounted || this.requestIds[key] !== requestId) return;
+				this.setState({ [key]: transform(data) });
+				this.setStatus(key, { state: "ok", error: "" });
+			})
+			.catch((error) => {
+				if (this.unmounted || this.requestIds[key] !== requestId) return;
+				if (!(error instanceof ApiAnswerError)) {
+					console.error(`Error fetching ${key}:`, error);
+				}
+				this.setState({ [key]: [] });
+				this.setStatus(key, {
+					state: error instanceof ApiAnswerError ? "answer" : "error",
+					error: errorMessage(error),
+				});
+			});
+	}
+
+	reset(key) {
+		this.requestIds[key] = (this.requestIds[key] || 0) + 1;
+		this.setState({ [key]: [] });
+		this.setStatus(key, IDLE);
 	}
 
 	fetchSchools() {
-		const basePath =
-			"wp-content/plugins/wp-gutenberg-epfl/frontend/epfl-student-projects/get-schools-zen.php";
-		const entryPoint = window.location.href.replace(/wp-admin\/.*/, basePath);
-		axios
-			.get(entryPoint)
-			.then((response) => response.data)
-			.then((data) => {
-				if (!Array.isArray(data)) {
-					throw new TypeError("Expected an array but got " + typeof data);
-				}
-				const schoolOptions = data.map((school) => ({
-					label: school.name || school,
-					value: school.name || school,
-				}));
-				this.setState({ schools: schoolOptions });
-			})
-			.catch((error) => {
-				console.error("Error fetching schools:", error);
-				this.setState({ schools: [] });
-			});
+		this.load("schools", proxyUrl("get-schools-zen.php"), (data) =>
+			data.map((school) => ({
+				label: school.name || school,
+				value: school.name || school,
+			})),
+		);
 	}
-	fetchData(source) {
-		const basePath =
-			"wp-content/plugins/wp-gutenberg-epfl/frontend/epfl-student-projects/get-sections";
-		let entryPointProjects =
-			(source === "isa") || (source === "zen")
-				? window.location.href.replace(
-						/wp-admin\/.*/,
-						`${basePath}-${source}.php`,
-				  )
-				: null;
 
-		// Append school parameter for Project Portal unit fetching
-		if (source === "zen" && this.state.zenSchool) {
-			entryPointProjects += `?school=${encodeURIComponent(this.state.zenSchool)}`;
+	fetchTags() {
+		this.load("tags", proxyUrl("get-tags-zen.php"), (data) => {
+			// Most used tags first so the suggestions list is relevant
+			const tags = data
+				.filter((tag) => tag && tag.name)
+				.sort((a, b) => (b.projectCount || 0) - (a.projectCount || 0))
+				.map((tag) => tag.name);
+			return [...new Set(tags)];
+		});
+	}
+
+	fetchZenUnits(school = this.props.attributes.zenSchool) {
+		if (!school) {
+			this.reset("sections");
+			return;
 		}
+		this.load(
+			"sections",
+			proxyUrl("get-sections-zen.php") + `?school=${encodeURIComponent(school)}`,
+			(data) =>
+				data
+					.filter((section) => section && section.acronym)
+					.map((section) => ({ label: section.acronym, value: section.acronym })),
+		);
+	}
 
-		if (entryPointProjects === null && source !== "zen") {
+	fetchIsaSections() {
+		this.load("sections", proxyUrl("get-sections-isa.php"), (data) =>
+			data
+				.filter((section) => section.code && section.code.startsWith("PROJETS_"))
+				.map((section) => ({
+					label: (section.name && section.name.fr) || section.code,
+					value: section.code,
+				})),
+		);
+	}
+
+	/** Fetches the projects matching the current settings, to tell the editor what will be displayed. */
+	fetchProjectsPreview() {
+		const { apiSource, zenFetchMode, section, zenSchool, professorScipers, zenTags, onlyArchivedProjects } =
+			this.props.attributes;
+		if (apiSource !== "zen") {
+			this.reset("projects");
 			return;
 		}
 
-		if (source === "zen") {
-			if (this.state.zenFetchMode === "sciper" && this.props.attributes.professorScipers) {
-				const sciper = this.props.attributes.professorScipers;
-				const archived = this.props.attributes.onlyArchivedProjects ? "1" : "0";
-				const proxyBase =
-					"wp-content/plugins/wp-gutenberg-epfl/frontend/epfl-student-projects/get-projects-zen.php";
-				const zenApiUrl =
-					window.location.href.replace(/wp-admin\/.*/, proxyBase) +
-					`?sciper=${encodeURIComponent(sciper)}&archived=${archived}`;
-				axios
-					.get(zenApiUrl)
-					.then((response) => {
-						return response.data;
-					})
-					.then((data) => {
-						if (!Array.isArray(data)) {
-							throw new TypeError("Expected an array but got " + typeof data);
-						}
-
-						const filteredAndMappedSections = data.map((project) => ({
-							label: project.title,
-							value: project.id,
-						}));
-
-						this.setState({
-							sections: filteredAndMappedSections,
-						});
-
-					})
-					.catch((error) => {
-						console.error("Error fetching data from the Project Portal API", error);
-						this.setState({ sections: [] });
-					});
-			} else if (this.state.zenFetchMode === "section" || this.state.zenFetchMode === "") {
-				axios
-					.get(entryPointProjects)
-					.then((response) => {
-						return response.data;
-					})
-					.then((data) => {
-						if (!Array.isArray(data)) {
-							throw new TypeError("Expected an array but got " + typeof data);
-						}
-
-						const filteredAndMappedSections = data.map((section) => ({
-							label: section.acronym,
-							value: section.acronym,
-						}));
-
-						this.setState({
-							sections: filteredAndMappedSections,
-						});
-
-					})
-					.catch((error) => {
-						console.error("Error fetching data:", error);
-						this.setState({ sections: [] });
-					});
-			}
-		} else {
-			axios
-				.get(entryPointProjects)
-				.then((response) => {
-					return response.data;
-				})
-				.then((data) => {
-					if (!Array.isArray(data)) {
-						throw new TypeError("Expected an array but got " + typeof data);
-					}
-
-					let filteredAndMappedSections;
-					if (this.state.apiSource === "zen") {
-						filteredAndMappedSections = data.map((section) => ({
-							label: section.acronym,
-							value: section.acronym,
-						}));
-					} else if (this.state.apiSource === "isa") {
-						filteredAndMappedSections = data
-							.filter(
-								(section) => section.code && section.code.startsWith("PROJETS_"),
-							)
-							.map((section) => ({
-								label: section.name.fr,
-								value: section.code,
-							}));
-					}
-					this.setState({
-						sections: filteredAndMappedSections,
-					});
-
-				})
-				.catch((error) => {
-					console.error("Error fetching data:", error);
-					this.setState({ sections: [] });
-				});
+		const archived = onlyArchivedProjects ? "1" : "0";
+		let query = null;
+		if (zenFetchMode === "sciper" && this.getSciperError()) {
+			// The SCIPER field already shows what's wrong, don't add a misleading "no projects"
+			query = null;
+		} else if (zenFetchMode === "sciper" && professorScipers && professorScipers.trim() !== "") {
+			query = `sciper=${encodeURIComponent(professorScipers.replace(/\s/g, ""))}&archived=${archived}`;
+		} else if (zenFetchMode === "section" && section) {
+			query = `unit=${encodeURIComponent(section)}&archived=${archived}`;
+		} else if (zenFetchMode === "tag" && zenTags && zenTags.trim() !== "") {
+			query = `tags=${encodeURIComponent(zenTags)}`;
+		} else if (zenFetchMode === "school" && zenSchool) {
+			query = `school=${encodeURIComponent(zenSchool)}`;
 		}
+
+		if (query === null) {
+			this.reset("projects");
+			return;
+		}
+		this.load("projects", proxyUrl("get-projects-zen.php") + "?" + query, (data) =>
+			data.filter((project) => project && typeof project === "object"),
+		);
+	}
+
+	getSelectedTags() {
+		const { zenTags } = this.props.attributes;
+		return zenTags
+			? zenTags.split(",").map((t) => t.trim()).filter((t) => t !== "")
+			: [];
+	}
+
+	/** Validates the SCIPER field, returns an error message or null. */
+	getSciperError() {
+		const value = (this.props.attributes.professorScipers || "").replace(/\s/g, "");
+		if (value === "") return null;
+		const invalid = value.split(",").filter((s) => s !== "" && !/^\d{6}$/.test(s));
+		if (invalid.length > 0) {
+			return sprintf(
+				__("Invalid SCIPER(s): %s. A SCIPER is a 6-digit number; separate them with commas.", "epfl"),
+				invalid.join(", "),
+			);
+		}
+		return null;
+	}
+
+	/** Notice telling the editor how many projects will be displayed, or why there is none. */
+	renderProjectsPreview() {
+		const { attributes } = this.props;
+		const status = this.state.status.projects;
+
+		if (status.state === "idle") return null;
+		if (status.state === "loading") {
+			return (
+				<p>
+					<Spinner /> {__("Checking the matching projects…", "epfl")}
+				</p>
+			);
+		}
+		if (status.state === "error") {
+			return (
+				<Notice
+					status="error"
+					isDismissible={false}
+					actions={[{ label: __("Retry", "epfl"), onClick: () => this.fetchProjectsPreview() }]}
+				>
+					{sprintf(__("Unable to load the projects from the Project Portal: %s", "epfl"), status.error)}
+				</Notice>
+			);
+		}
+		if (status.state === "answer") {
+			// The API answered, but with an error such as "No projects found for the specified managers"
+			return (
+				<Notice status="warning" isDismissible={false}>
+					{sprintf(__("No projects will be displayed. Project Portal says: %s.", "epfl"), status.error.trim().replace(/\.+$/, ""))}
+					{attributes.zenFetchMode === "sciper" &&
+						" " + __("Please check the SCIPER(s).", "epfl")}
+					{attributes.onlyArchivedProjects &&
+						" " + __("Note that only archived projects are requested.", "epfl")}
+				</Notice>
+			);
+		}
+
+		let projects = this.state.projects;
+		if (projects.length === 0) {
+			return (
+				<Notice status="warning" isDismissible={false}>
+					{__("No projects found with these settings.", "epfl")}
+				</Notice>
+			);
+		}
+
+		const selectedTags = this.getSelectedTags();
+		if (attributes.zenFetchMode === "tag" && attributes.zenMatchAllTags && selectedTags.length > 1) {
+			const wanted = selectedTags.map((t) => t.toLowerCase());
+			projects = projects.filter((p) => {
+				const names = (p.tags || []).map((t) => (t && t.name ? t.name.toLowerCase() : ""));
+				return wanted.every((w) => names.includes(w));
+			});
+			if (projects.length === 0) {
+				return (
+					<Notice status="warning" isDismissible={false}>
+						{__("No project has all the selected tags. Disable \"Match all selected tags\" or change the tags.", "epfl")}
+					</Notice>
+				);
+			}
+		}
+
+		if (attributes.onlyCurrentProjects) {
+			projects = projects.filter((p) => p.status === "ongoing");
+			if (projects.length === 0) {
+				return (
+					<Notice status="warning" isDismissible={false}>
+						{__("Projects were found, but none of them is ongoing. Disable \"Only ongoing projects\" to show them.", "epfl")}
+					</Notice>
+				);
+			}
+		}
+
+		return (
+			<Notice status="success" isDismissible={false}>
+				{sprintf(
+					_n("%d project will be displayed.", "%d projects will be displayed.", projects.length, "epfl"),
+					projects.length,
+				)}
+			</Notice>
+		);
 	}
 
 	render() {
-
 		const { attributes, setAttributes } = this.props;
-
-
-		const optionsSectionsList = this.state.sections.map((section) => ({
-			label: section.label,
-			value: section.value,
-		}));
-
-		const optionsSchoolsList = this.state.schools.map((school) => ({
-			label: school.label,
-			value: school.value,
-		}));
+		const { apiSource = "", zenFetchMode = "", zenSchool = "" } = attributes;
+		const { status } = this.state;
+		const sciperError = this.getSciperError();
 
 		return (
 			<InspectorControls>
-				<PanelBody title={__("API Source")}>
+				<PanelBody title={__("API Source", "epfl")}>
 					<SelectControl
-						label={__("Select API Source")}
-						value={this.state.apiSource}
+						label={__("Select API Source", "epfl")}
+						value={apiSource}
 						options={[
-							{ label: "Select API", value: "" },
+							{ label: __("Select API", "epfl"), value: "" },
 							{ label: "ISA", value: "isa" },
 							{ label: "Project Portal", value: "zen" },
 						]}
-						onChange={(apiSource) => {
-							this.setState({ apiSource, zenFetchMode: "", zenSchool: "", sections: [] });
-							setAttributes({ apiSource, zenSchool: "", section: "" });
-							if (apiSource === "zen") {
-								this.fetchSchools();
+						onChange={(newApiSource) => {
+							this.reset("sections");
+							this.reset("projects");
+							setAttributes({ apiSource: newApiSource, zenFetchMode: "", zenSchool: "", section: "" });
+							if (newApiSource === "isa") {
+								this.fetchIsaSections();
 							}
-							this.fetchData(apiSource);
 						}}
 					/>
+					{apiSource === "" && (
+						<Notice status="warning" isDismissible={false}>
+							{__("Please select an API source.", "epfl")}
+						</Notice>
+					)}
 				</PanelBody>
-				{this.state.apiSource === "zen" && (
-					<PanelBody title={__("Project Portal Fetch Mode")}>
+				{apiSource === "zen" && (
+					<PanelBody title={__("Project Portal Fetch Mode", "epfl")}>
 						<SelectControl
-							label={__("Fetch By")}
-							value={this.state.zenFetchMode}
+							label={__("Fetch By", "epfl")}
+							value={zenFetchMode}
 							options={[
-								{ label: "Select Mode", value: "" },
-								{ label: "By Unit", value: "section" },
-								{ label: "By Professor SCIPER", value: "sciper" },
+								{ label: __("Select Mode", "epfl"), value: "" },
+								{ label: __("By Unit", "epfl"), value: "section" },
+								{ label: __("By Professor SCIPER", "epfl"), value: "sciper" },
+								{ label: __("By Tag(s)", "epfl"), value: "tag" },
+								{ label: __("By School", "epfl"), value: "school" },
 							]}
-							onChange={(zenFetchMode) => {
-								this.setState({ zenFetchMode, sections: [], zenSchool: "" }, () => {
-									setAttributes({ zenFetchMode, zenSchool: "", section: "" });
-									if (zenFetchMode === "section") {
-										this.fetchSchools();
-									}
-									this.fetchData(this.state.apiSource);
-								});
-							}}
-						/>
-					</PanelBody>
-				)}
-				{this.state.apiSource === "zen" && this.state.zenFetchMode === "section" && (
-					<PanelBody title={__("School")}>
-						<SelectControl
-							label={__("Select School")}
-							value={this.state.zenSchool}
-							options={[
-								{ label: "Please choose a school", value: "" },
-								...optionsSchoolsList,
-							]}
-							onChange={(zenSchool) => {
-								this.setState({ zenSchool, sections: [] }, () => {
-									setAttributes({ zenSchool, section: "" });
-									this.fetchData(this.state.apiSource);
-								});
-							}}
-						/>
-					</PanelBody>
-				)}
-				{this.state.apiSource === "zen" && this.state.zenFetchMode === "section" && this.state.zenSchool && (
-					<PanelBody title={__("Unit")}>
-						<SelectControl
-							value={attributes.section}
-							onChange={(section) => {
-								setAttributes({ section });
-							}}
-							options={[
-								{ label: "Please choose", value: "" },
-								...optionsSectionsList,
-							]}
-						/>
-					</PanelBody>
-				)}
-				{this.state.apiSource === "zen" && this.state.zenFetchMode === "sciper" && (
-					<PanelBody title={__("Filters", "epfl")}>
-						<TextControl
-							label={__("Professor(s) sciper(s)", "epfl")}
-							help={__("Separated with commas", "epfl")}
-							value={attributes.professorScipers}
-							onChange={(professorScipers) => {
-								setAttributes({ professorScipers });
-								setTimeout(() => {
-									if (this.state.apiSource === "zen" && this.state.zenFetchMode === "sciper") {
-										this.fetchData(this.state.apiSource);
-									}
-								}, 100);
-							}}
-						/>
-					</PanelBody>
-				)}
-				{this.state.apiSource === "isa" && (
-					<PanelBody title={__("Section")}>
-						<SelectControl
-							value={attributes.section}
-							onChange={(section) => {
-								setAttributes({ section });
-							}}
-							options={[
-								{ label: "Please choose", value: "" },
-								...optionsSectionsList,
-							]}
-						/>
-					</PanelBody>
-				)}
-				<PanelBody title={__("Filters", "epfl")}>
-					<ToggleControl
-						label={__("Only ongoing projects", "epfl")}
-						checked={attributes.onlyCurrentProjects}
-						onChange={(onlyCurrentProjects) => {
-							setAttributes({ 
-								onlyCurrentProjects,
-								onlyArchivedProjects: onlyCurrentProjects ? false : attributes.onlyArchivedProjects
-							});
-						}}
-					/>
-					{this.state.apiSource === "zen" && (
-						<ToggleControl
-							label={__("Only archived projects", "epfl")}
-							checked={attributes.onlyArchivedProjects}
-							onChange={(onlyArchivedProjects) => {
-								setAttributes({ 
-									onlyArchivedProjects,
-									onlyCurrentProjects: onlyArchivedProjects ? false : attributes.onlyCurrentProjects
-								});
-								// Refetch data when archived filter changes
-								if (this.state.apiSource === "zen" && this.state.zenFetchMode === "sciper" && this.props.attributes.professorScipers) {
-									setTimeout(() => {
-										this.fetchData(this.state.apiSource);
-									}, 100);
+							onChange={(newMode) => {
+								this.reset("sections");
+								this.reset("projects");
+								const newAttributes = { zenFetchMode: newMode, zenSchool: "", section: "" };
+								// The Project Portal tag and school endpoints have no archived variant
+								if (newMode === "tag" || newMode === "school") {
+									newAttributes.onlyArchivedProjects = false;
+								}
+								setAttributes(newAttributes);
+								if (newMode === "section" || newMode === "school") {
+									this.fetchSchools();
+								} else if (newMode === "tag") {
+									this.fetchTags();
 								}
 							}}
 						/>
-					)}
-					{this.state.apiSource === "isa" && (
+						{zenFetchMode === "" && (
+							<Notice status="warning" isDismissible={false}>
+								{__("Please select how the projects should be fetched.", "epfl")}
+							</Notice>
+						)}
+					</PanelBody>
+				)}
+				{apiSource === "zen" && (zenFetchMode === "section" || zenFetchMode === "school") && (
+					<PanelBody title={__("School", "epfl")}>
+						<SelectControl
+							label={__("Select School", "epfl")}
+							value={zenSchool}
+							disabled={status.schools.state === "loading"}
+							options={[
+								{ label: __("Please choose a school", "epfl"), value: "" },
+								...this.state.schools,
+							]}
+							onChange={(newSchool) => {
+								setAttributes({ zenSchool: newSchool, section: "" });
+								if (zenFetchMode === "section") {
+									this.fetchZenUnits(newSchool);
+								}
+							}}
+						/>
+						<StatusNotice
+							status={status.schools.state === "answer" ? { ...status.schools, state: "error" } : status.schools}
+							label={__("schools", "epfl")}
+							onRetry={() => this.fetchSchools()}
+							isEmpty={this.state.schools.length === 0}
+							emptyMessage={__("The Project Portal did not return any school.", "epfl")}
+						/>
+						{zenFetchMode === "school" && !zenSchool && status.schools.state === "ok" && this.state.schools.length > 0 && (
+							<Notice status="warning" isDismissible={false}>
+								{__("Please select a school: all its projects will be displayed.", "epfl")}
+							</Notice>
+						)}
+					</PanelBody>
+				)}
+				{apiSource === "zen" && zenFetchMode === "section" && zenSchool && (
+					<PanelBody title={__("Unit", "epfl")}>
+						<SelectControl
+							value={attributes.section}
+							disabled={status.sections.state === "loading"}
+							onChange={(section) => setAttributes({ section })}
+							options={[
+								{ label: __("Please choose", "epfl"), value: "" },
+								...this.state.sections,
+							]}
+						/>
+						<StatusNotice
+							status={status.sections.state === "answer" ? { ...status.sections, state: "error" } : status.sections}
+							label={__("units", "epfl")}
+							onRetry={() => this.fetchZenUnits()}
+							isEmpty={this.state.sections.length === 0}
+							emptyMessage={sprintf(__("No unit with projects was found for the school %s.", "epfl"), zenSchool)}
+						/>
+					</PanelBody>
+				)}
+				{apiSource === "zen" && zenFetchMode === "sciper" && (
+					<PanelBody title={__("Professors", "epfl")}>
 						<TextControl
 							label={__("Professor(s) sciper(s)", "epfl")}
 							help={__("Separated with commas", "epfl")}
 							value={attributes.professorScipers}
 							onChange={(professorScipers) => setAttributes({ professorScipers })}
 						/>
+						{sciperError && (
+							<Notice status="error" isDismissible={false}>
+								{sciperError}
+							</Notice>
+						)}
+					</PanelBody>
+				)}
+				{apiSource === "zen" && zenFetchMode === "tag" && (
+					<PanelBody title={__("Tags", "epfl")}>
+						<FormTokenField
+							label={__("Tag(s)", "epfl")}
+							value={this.getSelectedTags()}
+							suggestions={this.state.tags}
+							maxSuggestions={50}
+							disabled={status.tags.state === "loading"}
+							__experimentalExpandOnFocus
+							__experimentalShowHowTo={false}
+							__experimentalValidateInput={(token) =>
+								this.state.tags.length === 0 ||
+								this.state.tags.some((t) => t.toLowerCase() === token.toLowerCase())
+							}
+							onChange={(tokens) => {
+								const zenTags = tokens
+									.map((t) => (typeof t === "string" ? t : t.value).trim())
+									.filter((t) => t !== "" && t.indexOf(",") === -1)
+									.join(",");
+								setAttributes({ zenTags });
+							}}
+						/>
+						<p className="components-base-control__help">
+							{__("Type to search and pick one or more tags (topics, levels, sections).", "epfl")}
+						</p>
+						<StatusNotice
+							status={status.tags.state === "answer" ? { ...status.tags, state: "error" } : status.tags}
+							label={__("tags", "epfl")}
+							onRetry={() => this.fetchTags()}
+							isEmpty={this.state.tags.length === 0}
+							emptyMessage={__("The Project Portal did not return any tag.", "epfl")}
+						/>
+						<ToggleControl
+							label={__("Match all selected tags", "epfl")}
+							help={
+								attributes.zenMatchAllTags
+									? __("Only projects having every selected tag are shown.", "epfl")
+									: __("Projects having at least one of the selected tags are shown.", "epfl")
+							}
+							checked={!!attributes.zenMatchAllTags}
+							onChange={(zenMatchAllTags) => setAttributes({ zenMatchAllTags })}
+						/>
+					</PanelBody>
+				)}
+				{apiSource === "isa" && (
+					<PanelBody title={__("Section", "epfl")}>
+						<SelectControl
+							value={attributes.section}
+							disabled={status.sections.state === "loading"}
+							onChange={(section) => setAttributes({ section })}
+							options={[
+								{ label: __("Please choose", "epfl"), value: "" },
+								...this.state.sections,
+							]}
+						/>
+						<StatusNotice
+							status={status.sections.state === "answer" ? { ...status.sections, state: "error" } : status.sections}
+							label={__("sections", "epfl")}
+							onRetry={() => this.fetchIsaSections()}
+							isEmpty={this.state.sections.length === 0}
+							emptyMessage={__("IS-Academia did not return any project section.", "epfl")}
+						/>
+					</PanelBody>
+				)}
+				{apiSource === "zen" && zenFetchMode !== "" && (
+					<PanelBody title={__("Result preview", "epfl")}>
+						{this.renderProjectsPreview() || (
+							<p className="components-base-control__help">
+								{__("Fill in the settings above to see how many projects will be displayed.", "epfl")}
+							</p>
+						)}
+					</PanelBody>
+				)}
+				<PanelBody title={__("Filters", "epfl")}>
+					<ToggleControl
+						label={__("Only ongoing projects", "epfl")}
+						checked={!!attributes.onlyCurrentProjects}
+						onChange={(onlyCurrentProjects) => {
+							setAttributes({
+								onlyCurrentProjects,
+								onlyArchivedProjects: onlyCurrentProjects ? false : attributes.onlyArchivedProjects,
+							});
+						}}
+					/>
+					{apiSource === "zen" && zenFetchMode !== "tag" && zenFetchMode !== "school" && (
+						<ToggleControl
+							label={__("Only archived projects", "epfl")}
+							checked={!!attributes.onlyArchivedProjects}
+							onChange={(onlyArchivedProjects) => {
+								setAttributes({
+									onlyArchivedProjects,
+									onlyCurrentProjects: onlyArchivedProjects ? false : attributes.onlyCurrentProjects,
+								});
+							}}
+						/>
+					)}
+					{apiSource === "isa" && (
+						<TextControl
+							label={__("Professor(s) sciper(s)", "epfl")}
+							help={__("Separated with commas", "epfl")}
+							value={attributes.professorScipers}
+							onChange={(professorScipers) => setAttributes({ professorScipers })}
+						/>
+					)}
+					{apiSource === "isa" && sciperError && (
+						<Notice status="error" isDismissible={false}>
+							{sciperError}
+						</Notice>
 					)}
 				</PanelBody>
 			</InspectorControls>

@@ -207,6 +207,21 @@ function wp_gutenberg_epfl_register_blocks() {
 		));
 	register_block_type( 'epfl/student-projects', array(
 		'render_callback' => 'EPFL\Plugins\Gutenberg\StudentProjects\epfl_student_projects_block',
+		// Must match the attributes declared in src/epfl-student-projects/index.js
+		// (needed by the live preview in the editor, which renders the block through the REST API)
+		'attributes'      => array(
+			'title'                => array( 'type' => 'string' ),
+			'section'              => array( 'type' => 'string' ),
+			'onlyCurrentProjects'  => array( 'type' => 'boolean' ),
+			'onlyArchivedProjects' => array( 'type' => 'boolean' ),
+			'professorScipers'     => array( 'type' => 'string' ),
+			'apiSource'            => array( 'type' => 'string' ),
+			'zenFetchMode'         => array( 'type' => 'string' ),
+			'zenSchool'            => array( 'type' => 'string' ),
+			'zenTags'              => array( 'type' => 'string' ),
+			'zenMatchAllTags'      => array( 'type' => 'boolean' ),
+			'asToolTip'            => array( 'type' => 'boolean', 'default' => false ),
+		),
 		));
 
 	register_block_type( 'epfl/carousel', array(

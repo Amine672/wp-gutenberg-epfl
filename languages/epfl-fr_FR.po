@@ -2182,3 +2182,519 @@ msgstr "Public cible"
 
 msgid "Location"
 msgstr "Lieu"
+
+# --- EPFL Student Projects block ---
+
+#: frontend/epfl-student-projects/controller.php:68
+msgid "Ongoing"
+msgstr "En cours"
+
+#: frontend/epfl-student-projects/controller.php:70
+msgid "Archived"
+msgstr "Archivé"
+
+#: frontend/epfl-student-projects/controller.php:134
+msgid "The form was not properly filled. Please select a section."
+msgstr "Le formulaire n’a pas été correctement rempli. Veuillez sélectionner une section."
+
+#: frontend/epfl-student-projects/controller.php:157
+msgid "Unable to load the projects: IS-Academia could not be reached or returned an invalid answer. Please try again later."
+msgstr "Impossible de charger les projets : IS-Academia est injoignable ou a renvoyé une réponse invalide. Veuillez réessayer plus tard."
+
+#: frontend/epfl-student-projects/controller.php:161
+msgid "Unable to load the projects: unexpected answer from IS-Academia."
+msgstr "Impossible de charger les projets : réponse inattendue d’IS-Academia."
+
+#: frontend/epfl-student-projects/controller.php:170
+msgid "No projects found for this section."
+msgstr "Aucun projet trouvé pour cette section."
+
+#: frontend/epfl-student-projects/controller.php:172
+msgid "Please check the professor SCIPER(s) filter."
+msgstr "Veuillez vérifier le filtre par SCIPER de professeur·e(s)."
+
+#: frontend/epfl-student-projects/controller.php:175
+msgid "Note that only ongoing projects are requested."
+msgstr "Notez que seuls les projets en cours sont demandés."
+
+#: frontend/epfl-student-projects/controller.php:188 frontend/epfl-student-projects/controller.php:574
+msgid "Search"
+msgstr "Rechercher"
+
+#: frontend/epfl-student-projects/controller.php:318
+msgid "The form was not properly filled. Please select an API source."
+msgstr "Le formulaire n’a pas été correctement rempli. Veuillez sélectionner une source de données."
+
+#: frontend/epfl-student-projects/controller.php:327
+msgid "The form was not properly filled. Invalid API source selected."
+msgstr "Le formulaire n’a pas été correctement rempli. La source de données sélectionnée est invalide."
+
+#: frontend/epfl-student-projects/controller.php:345
+msgid "The form was not properly filled. Please select a fetch mode (By Unit, By Professor SCIPER, By Tag(s) or By School)."
+msgstr "Le formulaire n’a pas été correctement rempli. Veuillez choisir un mode de sélection (par unité, par SCIPER de professeur·e, par tag(s) ou par faculté)."
+
+#: frontend/epfl-student-projects/controller.php:349
+msgid "The form was not properly filled. Please select a unit."
+msgstr "Le formulaire n’a pas été correctement rempli. Veuillez sélectionner une unité."
+
+#: frontend/epfl-student-projects/controller.php:353
+msgid "The form was not properly filled. Please enter at least one professor SCIPER."
+msgstr "Le formulaire n’a pas été correctement rempli. Veuillez saisir au moins un SCIPER de professeur·e."
+
+#: frontend/epfl-student-projects/controller.php:362
+#, php-format
+msgid "The form was not properly filled. Invalid professor SCIPER(s): %s. A SCIPER is a 6-digit number; separate them with commas."
+msgstr "Le formulaire n’a pas été correctement rempli. SCIPER de professeur·e invalide(s) : %s. Un SCIPER est un nombre à 6 chiffres ; séparez-les par des virgules."
+
+#: frontend/epfl-student-projects/controller.php:369
+msgid "The form was not properly filled. Please select a school."
+msgstr "Le formulaire n’a pas été correctement rempli. Veuillez sélectionner une faculté."
+
+#: frontend/epfl-student-projects/controller.php:373
+msgid "The form was not properly filled. Please select at least one tag."
+msgstr "Le formulaire n’a pas été correctement rempli. Veuillez sélectionner au moins un tag."
+
+#: frontend/epfl-student-projects/controller.php:390
+msgid "The form was not properly filled. Invalid fetch mode or missing parameters."
+msgstr "Le formulaire n’a pas été correctement rempli. Mode de sélection invalide ou paramètres manquants."
+
+#: frontend/epfl-student-projects/controller.php:397
+msgid "Unable to load the projects: the Project Portal could not be reached or returned an invalid answer. Please try again later."
+msgstr "Impossible de charger les projets : le Project Portal est injoignable ou a renvoyé une réponse invalide. Veuillez réessayer plus tard."
+
+#: frontend/epfl-student-projects/controller.php:409
+#, php-format
+msgid "No projects could be loaded from the Project Portal: %s."
+msgstr "Aucun projet n’a pu être chargé depuis le Project Portal : %s."
+
+#: frontend/epfl-student-projects/controller.php:410
+msgid "Unable to load the projects: unexpected answer from the Project Portal."
+msgstr "Impossible de charger les projets : réponse inattendue du Project Portal."
+
+#: frontend/epfl-student-projects/controller.php:412
+msgid "Please check the professor SCIPER(s)."
+msgstr "Veuillez vérifier le(s) SCIPER de professeur·e(s)."
+
+#: frontend/epfl-student-projects/controller.php:426
+#, php-format
+msgid "No projects found for the professor SCIPER(s) %s."
+msgstr "Aucun projet trouvé pour le(s) SCIPER de professeur·e(s) %s."
+
+#: frontend/epfl-student-projects/controller.php:428
+#, php-format
+msgid "No projects found for the tag(s) %s."
+msgstr "Aucun projet trouvé pour le(s) tag(s) %s."
+
+#: frontend/epfl-student-projects/controller.php:430
+#, php-format
+msgid "No projects found for the school %s."
+msgstr "Aucun projet trouvé pour la faculté %s."
+
+#: frontend/epfl-student-projects/controller.php:432
+#, php-format
+msgid "No projects found for the unit %s."
+msgstr "Aucun projet trouvé pour l’unité %s."
+
+#: frontend/epfl-student-projects/controller.php:435 src/epfl-student-projects/inspector.js:308
+msgid "Note that only archived projects are requested."
+msgstr "Notez que seuls les projets archivés sont demandés."
+
+#: frontend/epfl-student-projects/controller.php:457
+#, php-format
+msgid "No project has all the selected tags (%s). Disable \"Match all selected tags\" to show projects having at least one of them."
+msgstr "Aucun projet ne possède tous les tags sélectionnés (%s). Désactivez « Tous les tags sélectionnés » pour afficher les projets ayant au moins l’un d’entre eux."
+
+#: frontend/epfl-student-projects/controller.php:471 src/epfl-student-projects/inspector.js:343
+msgid "Projects were found, but none of them is ongoing. Disable \"Only ongoing projects\" to show them."
+msgstr "Des projets ont été trouvés, mais aucun n’est en cours. Désactivez « Uniquement les projets en cours » pour les afficher."
+
+#: frontend/epfl-student-projects/controller.php:557 frontend/epfl-student-projects/controller.php:558
+msgid "project"
+msgstr "projet"
+
+#: frontend/epfl-student-projects/controller.php:558
+msgid "projects"
+msgstr "projets"
+
+#: frontend/epfl-student-projects/controller.php:566
+#, php-format
+msgid "Editor preview: %1$d of %2$d projects shown. Search, filters, pagination and project details work on the published page."
+msgstr "Aperçu dans l’éditeur : %1$d projets affichés sur %2$d. La recherche, les filtres, la pagination et les détails des projets fonctionnent sur la page publiée."
+
+#: frontend/epfl-student-projects/controller.php:577
+msgid "Search by title, keyword, supervisor…"
+msgstr "Rechercher par titre, mot-clé, superviseur…"
+
+#: frontend/epfl-student-projects/controller.php:581
+msgid "Sort by"
+msgstr "Trier par"
+
+#: frontend/epfl-student-projects/controller.php:584
+msgid "Newest"
+msgstr "Plus récents"
+
+#: frontend/epfl-student-projects/controller.php:590
+msgid "Filter by level (several can be selected)"
+msgstr "Filtrer par niveau (plusieurs choix possibles)"
+
+#: frontend/epfl-student-projects/controller.php:591 frontend/epfl-student-projects/controller.php:699
+msgid "Level"
+msgstr "Niveau"
+
+#: frontend/epfl-student-projects/controller.php:602
+#, php-format
+msgid "Remove the keyword filter: %s"
+msgstr "Retirer le filtre par mot-clé : %s"
+
+#: frontend/epfl-student-projects/controller.php:674
+msgid "Details"
+msgstr "Détails"
+
+#: frontend/epfl-student-projects/controller.php:681
+msgid "No description provided"
+msgstr "Aucune description fournie"
+
+#: frontend/epfl-student-projects/controller.php:685
+msgid "ID"
+msgstr "ID"
+
+#: frontend/epfl-student-projects/controller.php:689
+msgid "Status"
+msgstr "Statut"
+
+#: frontend/epfl-student-projects/controller.php:694
+msgid "Created At"
+msgstr "Créé le"
+
+#: frontend/epfl-student-projects/controller.php:705
+msgid "Project URL"
+msgstr "URL du projet"
+
+#: frontend/epfl-student-projects/controller.php:710
+msgid "Creator"
+msgstr "Créateur·rice"
+
+#: frontend/epfl-student-projects/controller.php:720
+msgid "Members"
+msgstr "Membres"
+
+#: frontend/epfl-student-projects/controller.php:728
+msgid "Keywords"
+msgstr "Mots-clés"
+
+#: frontend/epfl-student-projects/controller.php:729
+msgid "Show all projects with this keyword"
+msgstr "Afficher tous les projets avec ce mot-clé"
+
+#: frontend/epfl-student-projects/controller.php:740
+msgid "Projects pages"
+msgstr "Pages de projets"
+
+#: frontend/epfl-student-projects/controller.php:742
+msgid "Previous"
+msgstr "Précédent"
+
+#: frontend/epfl-student-projects/controller.php:743
+msgid "Next"
+msgstr "Suivant"
+
+#: frontend/epfl-student-projects/controller.php:745
+#, php-format
+msgid "Page %d"
+msgstr "Page %d"
+
+#: frontend/epfl-student-projects/controller.php:747
+#, php-format
+msgid "Projects %1$s–%2$s of %3$s"
+msgstr "Projets %1$s–%2$s sur %3$s"
+
+#: frontend/epfl-student-projects/controller.php:753
+msgid "No projects match your search criteria."
+msgstr "Aucun projet ne correspond à vos critères de recherche."
+
+#: frontend/epfl-student-projects/controller.php:769
+msgid "View project"
+msgstr "Voir le projet"
+
+#: src/epfl-student-projects/inspector.js:38
+#, php-format
+msgid "The server answered with status %s."
+msgstr "Le serveur a répondu avec le statut %s."
+
+#: src/epfl-student-projects/inspector.js:40
+msgid "The server could not be reached. Please check your connection and try again."
+msgstr "Le serveur est injoignable. Veuillez vérifier votre connexion et réessayer."
+
+#: src/epfl-student-projects/inspector.js:51
+msgid "Unexpected answer from the server."
+msgstr "Réponse inattendue du serveur."
+
+#: src/epfl-student-projects/inspector.js:60
+#, php-format
+msgid "Loading %s…"
+msgstr "Chargement des %s…"
+
+#: src/epfl-student-projects/inspector.js:294 src/epfl-student-projects/inspector.js:69
+msgid "Retry"
+msgstr "Réessayer"
+
+#: src/epfl-student-projects/inspector.js:71
+#, php-format
+msgid "Unable to load the %1$s: %2$s"
+msgstr "Impossible de charger les %1$s : %2$s"
+
+#: src/epfl-student-projects/inspector.js:269
+#, php-format
+msgid "Invalid SCIPER(s): %s. A SCIPER is a 6-digit number; separate them with commas."
+msgstr "SCIPER invalide(s) : %s. Un SCIPER est un nombre à 6 chiffres ; séparez-les par des virgules."
+
+#: src/epfl-student-projects/inspector.js:285
+msgid "Checking the matching projects…"
+msgstr "Recherche des projets correspondants…"
+
+#: src/epfl-student-projects/inspector.js:296
+#, php-format
+msgid "Unable to load the projects from the Project Portal: %s"
+msgstr "Impossible de charger les projets depuis le Project Portal : %s"
+
+#: src/epfl-student-projects/inspector.js:304
+#, php-format
+msgid "No projects will be displayed. Project Portal says: %s."
+msgstr "Aucun projet ne sera affiché. Réponse du Project Portal : %s."
+
+#: src/epfl-student-projects/inspector.js:306
+msgid "Please check the SCIPER(s)."
+msgstr "Veuillez vérifier le(s) SCIPER."
+
+#: src/epfl-student-projects/inspector.js:317
+msgid "No projects found with these settings."
+msgstr "Aucun projet trouvé avec ces paramètres."
+
+#: src/epfl-student-projects/inspector.js:332
+msgid "No project has all the selected tags. Disable \"Match all selected tags\" or change the tags."
+msgstr "Aucun projet ne possède tous les tags sélectionnés. Désactivez « Tous les tags sélectionnés » ou changez les tags."
+
+#: src/epfl-student-projects/inspector.js:367
+msgid "API Source"
+msgstr "Source de données"
+
+#: src/epfl-student-projects/inspector.js:369
+msgid "Select API Source"
+msgstr "Choisir la source de données"
+
+#: src/epfl-student-projects/inspector.js:372
+msgid "Select API"
+msgstr "Choisir une source"
+
+#: src/epfl-student-projects/index.js:89 src/epfl-student-projects/inspector.js:387
+msgid "Please select an API source."
+msgstr "Veuillez sélectionner une source de données."
+
+#: src/epfl-student-projects/inspector.js:392
+msgid "Project Portal Fetch Mode"
+msgstr "Mode de sélection (Project Portal)"
+
+#: src/epfl-student-projects/inspector.js:394
+msgid "Fetch By"
+msgstr "Sélectionner par"
+
+#: src/epfl-student-projects/inspector.js:397
+msgid "Select Mode"
+msgstr "Choisir un mode"
+
+#: src/epfl-student-projects/inspector.js:398
+msgid "By Unit"
+msgstr "Par unité"
+
+#: src/epfl-student-projects/inspector.js:399
+msgid "By Professor SCIPER"
+msgstr "Par SCIPER de professeur·e"
+
+#: src/epfl-student-projects/inspector.js:400
+msgid "By Tag(s)"
+msgstr "Par tag(s)"
+
+#: src/epfl-student-projects/inspector.js:401
+msgid "By School"
+msgstr "Par faculté"
+
+#: src/epfl-student-projects/inspector.js:421
+msgid "Please select how the projects should be fetched."
+msgstr "Veuillez choisir comment sélectionner les projets."
+
+#: src/epfl-student-projects/inspector.js:427
+msgid "School"
+msgstr "Faculté"
+
+#: src/epfl-student-projects/inspector.js:429
+msgid "Select School"
+msgstr "Choisir la faculté"
+
+#: src/epfl-student-projects/inspector.js:433
+msgid "Please choose a school"
+msgstr "Veuillez choisir une faculté"
+
+#: src/epfl-student-projects/inspector.js:445
+msgid "schools"
+msgstr "facultés"
+
+#: src/epfl-student-projects/inspector.js:448
+msgid "The Project Portal did not return any school."
+msgstr "Le Project Portal n’a renvoyé aucune faculté."
+
+#: src/epfl-student-projects/inspector.js:452
+msgid "Please select a school: all its projects will be displayed."
+msgstr "Veuillez sélectionner une faculté : tous ses projets seront affichés."
+
+#: src/epfl-student-projects/inspector.js:464 src/epfl-student-projects/inspector.js:543
+msgid "Please choose"
+msgstr "Veuillez choisir"
+
+#: src/epfl-student-projects/inspector.js:470
+msgid "units"
+msgstr "unités"
+
+#: src/epfl-student-projects/inspector.js:473
+#, php-format
+msgid "No unit with projects was found for the school %s."
+msgstr "Aucune unité avec des projets n’a été trouvée pour la faculté %s."
+
+#: src/epfl-student-projects/inspector.js:478
+msgid "Professors"
+msgstr "Professeur·e·s"
+
+#: src/epfl-student-projects/inspector.js:495
+msgid "Tag(s)"
+msgstr "Tag(s)"
+
+#: src/epfl-student-projects/inspector.js:515
+msgid "Type to search and pick one or more tags (topics, levels, sections)."
+msgstr "Tapez pour rechercher et choisir un ou plusieurs tags (thèmes, niveaux, sections)."
+
+#: src/epfl-student-projects/inspector.js:519
+msgid "tags"
+msgstr "tags"
+
+#: src/epfl-student-projects/inspector.js:522
+msgid "The Project Portal did not return any tag."
+msgstr "Le Project Portal n’a renvoyé aucun tag."
+
+#: src/epfl-student-projects/inspector.js:525
+msgid "Match all selected tags"
+msgstr "Tous les tags sélectionnés"
+
+#: src/epfl-student-projects/inspector.js:528
+msgid "Only projects having every selected tag are shown."
+msgstr "Seuls les projets ayant tous les tags sélectionnés sont affichés."
+
+#: src/epfl-student-projects/inspector.js:529
+msgid "Projects having at least one of the selected tags are shown."
+msgstr "Les projets ayant au moins un des tags sélectionnés sont affichés."
+
+#: src/epfl-student-projects/inspector.js:549
+msgid "sections"
+msgstr "sections"
+
+#: src/epfl-student-projects/inspector.js:552
+msgid "IS-Academia did not return any project section."
+msgstr "IS-Academia n’a renvoyé aucune section de projets."
+
+#: src/epfl-student-projects/inspector.js:557
+msgid "Result preview"
+msgstr "Aperçu du résultat"
+
+#: src/epfl-student-projects/inspector.js:560
+msgid "Fill in the settings above to see how many projects will be displayed."
+msgstr "Remplissez les paramètres ci-dessus pour voir combien de projets seront affichés."
+
+#: src/epfl-student-projects/inspector.js:567
+msgid "Only ongoing projects"
+msgstr "Uniquement les projets en cours"
+
+#: src/epfl-student-projects/inspector.js:578
+msgid "Only archived projects"
+msgstr "Uniquement les projets archivés"
+
+#: src/epfl-student-projects/inspector.js:352
+#, php-format
+msgid "%d project will be displayed."
+msgid_plural "%d projects will be displayed."
+msgstr[0] "%d projet sera affiché."
+msgstr[1] "%d projets seront affichés."
+
+#: src/epfl-student-projects/index.js:92
+msgid "Please select a fetch mode (By Unit, By Professor SCIPER, By Tag(s) or By School)."
+msgstr "Veuillez choisir un mode de sélection (par unité, par SCIPER de professeur·e, par tag(s) ou par faculté)."
+
+#: src/epfl-student-projects/index.js:102 src/epfl-student-projects/index.js:94
+msgid "Please select a school."
+msgstr "Veuillez sélectionner une faculté."
+
+#: src/epfl-student-projects/index.js:96
+msgid "Please select a unit."
+msgstr "Veuillez sélectionner une unité."
+
+#: src/epfl-student-projects/index.js:98
+msgid "Please enter at least one professor SCIPER."
+msgstr "Veuillez saisir au moins un SCIPER de professeur·e."
+
+#: src/epfl-student-projects/index.js:100
+msgid "Invalid professor SCIPER(s). A SCIPER is a 6-digit number; separate them with commas."
+msgstr "SCIPER de professeur·e invalide(s). Un SCIPER est un nombre à 6 chiffres ; séparez-les par des virgules."
+
+#: src/epfl-student-projects/index.js:104
+msgid "Please select at least one tag."
+msgstr "Veuillez sélectionner au moins un tag."
+
+#: src/epfl-student-projects/index.js:108
+msgid "Please select a section."
+msgstr "Veuillez sélectionner une section."
+
+#: src/epfl-student-projects/index.js:131
+msgid "Warning:"
+msgstr "Attention :"
+
+#. translators: date format of the project creation date, see https://www.php.net/manual/datetime.format.php
+#: frontend/epfl-student-projects/controller.php:645
+msgid "F j, Y"
+msgstr "j F Y"
+
+#: frontend/epfl-student-projects/controller.php:83
+msgid "Supervisor"
+msgstr "Superviseur·e"
+
+#: frontend/epfl-student-projects/controller.php:85
+msgid "Owner"
+msgstr "Responsable"
+
+#: frontend/epfl-student-projects/controller.php:87
+msgid "Student"
+msgstr "Étudiant·e"
+
+#. translators: %s: date
+#: frontend/epfl-student-projects/controller.php:811
+#, php-format
+msgid "Created on %s"
+msgstr "Créé le %s"
+
+#: frontend/epfl-student-projects/controller.php:834
+msgid "People"
+msgstr "Personnes"
+
+#: frontend/epfl-student-projects/controller.php:856
+msgid "Contact"
+msgstr "Contact"
+
+#: frontend/epfl-student-projects/controller.php:879
+msgid "Project website"
+msgstr "Site web du projet"
+
+#. translators: %d: project number
+#: frontend/epfl-student-projects/controller.php:883
+#, php-format
+msgid "Project ID #%d"
+msgstr "Projet n° %d"
+
+#: frontend/epfl-student-projects/controller.php:928
+msgid "View on Project Portal"
+msgstr "Voir sur le Project Portal"

@@ -1515,6 +1515,181 @@
          ],
          "Linkedin": [
             "Linkedin"
+         ],
+         "projects": [
+            "projets"
+         ],
+         "Note that only archived projects are requested.": [
+            "Notez que seuls les projets archivés sont demandés."
+         ],
+         "API Source": [
+            "Source de données"
+         ],
+         "Select API Source": [
+            "Choisir la source de données"
+         ],
+         "Select API": [
+            "Choisir une source"
+         ],
+         "Project Portal Fetch Mode": [
+            "Mode de sélection (Project Portal)"
+         ],
+         "Fetch By": [
+            "Sélectionner par"
+         ],
+         "Select Mode": [
+            "Choisir un mode"
+         ],
+         "By Unit": [
+            "Par unité"
+         ],
+         "By Professor SCIPER": [
+            "Par SCIPER de professeur·e"
+         ],
+         "By Tag(s)": [
+            "Par tag(s)"
+         ],
+         "By School": [
+            "Par faculté"
+         ],
+         "School": [
+            "Faculté"
+         ],
+         "Select School": [
+            "Choisir la faculté"
+         ],
+         "Please choose a school": [
+            "Veuillez choisir une faculté"
+         ],
+         "Please choose": [
+            "Veuillez choisir"
+         ],
+         "Warning:": [
+            "Attention :"
+         ],
+         "Please select a fetch mode (By Unit, By Professor SCIPER, By Tag(s) or By School).": [
+            "Veuillez choisir un mode de sélection (par unité, par SCIPER de professeur·e, par tag(s) ou par faculté)."
+         ],
+         "Please select a school.": [
+            "Veuillez sélectionner une faculté."
+         ],
+         "Please select a unit.": [
+            "Veuillez sélectionner une unité."
+         ],
+         "Please enter at least one professor SCIPER.": [
+            "Veuillez saisir au moins un SCIPER de professeur·e."
+         ],
+         "Invalid professor SCIPER(s). A SCIPER is a 6-digit number; separate them with commas.": [
+            "SCIPER de professeur·e invalide(s). Un SCIPER est un nombre à 6 chiffres ; séparez-les par des virgules."
+         ],
+         "Please select at least one tag.": [
+            "Veuillez sélectionner au moins un tag."
+         ],
+         "Please select a section.": [
+            "Veuillez sélectionner une section."
+         ],
+         "The server answered with status %s.": [
+            "Le serveur a répondu avec le statut %s."
+         ],
+         "The server could not be reached. Please check your connection and try again.": [
+            "Le serveur est injoignable. Veuillez vérifier votre connexion et réessayer."
+         ],
+         "Unexpected answer from the server.": [
+            "Réponse inattendue du serveur."
+         ],
+         "Loading %s…": [
+            "Chargement des %s…"
+         ],
+         "Retry": [
+            "Réessayer"
+         ],
+         "Unable to load the %1$s: %2$s": [
+            "Impossible de charger les %1$s : %2$s"
+         ],
+         "Invalid SCIPER(s): %s. A SCIPER is a 6-digit number; separate them with commas.": [
+            "SCIPER invalide(s) : %s. Un SCIPER est un nombre à 6 chiffres ; séparez-les par des virgules."
+         ],
+         "Checking the matching projects…": [
+            "Recherche des projets correspondants…"
+         ],
+         "Unable to load the projects from the Project Portal: %s": [
+            "Impossible de charger les projets depuis le Project Portal : %s"
+         ],
+         "No projects will be displayed. Project Portal says: %s.": [
+            "Aucun projet ne sera affiché. Réponse du Project Portal : %s."
+         ],
+         "Please check the SCIPER(s).": [
+            "Veuillez vérifier le(s) SCIPER."
+         ],
+         "No projects found with these settings.": [
+            "Aucun projet trouvé avec ces paramètres."
+         ],
+         "Please select an API source.": [
+            "Veuillez sélectionner une source de données."
+         ],
+         "Please select how the projects should be fetched.": [
+            "Veuillez choisir comment sélectionner les projets."
+         ],
+         "schools": [
+            "facultés"
+         ],
+         "The Project Portal did not return any school.": [
+            "Le Project Portal n’a renvoyé aucune faculté."
+         ],
+         "Please select a school: all its projects will be displayed.": [
+            "Veuillez sélectionner une faculté : tous ses projets seront affichés."
+         ],
+         "units": [
+            "unités"
+         ],
+         "No unit with projects was found for the school %s.": [
+            "Aucune unité avec des projets n’a été trouvée pour la faculté %s."
+         ],
+         "Professors": [
+            "Professeur·e·s"
+         ],
+         "Tag(s)": [
+            "Tag(s)"
+         ],
+         "Type to search and pick one or more tags (topics, levels, sections).": [
+            "Tapez pour rechercher et choisir un ou plusieurs tags (thèmes, niveaux, sections)."
+         ],
+         "tags": [
+            "tags"
+         ],
+         "The Project Portal did not return any tag.": [
+            "Le Project Portal n’a renvoyé aucun tag."
+         ],
+         "Match all selected tags": [
+            "Tous les tags sélectionnés"
+         ],
+         "Only projects having every selected tag are shown.": [
+            "Seuls les projets ayant tous les tags sélectionnés sont affichés."
+         ],
+         "Projects having at least one of the selected tags are shown.": [
+            "Les projets ayant au moins un des tags sélectionnés sont affichés."
+         ],
+         "sections": [
+            "sections"
+         ],
+         "IS-Academia did not return any project section.": [
+            "IS-Academia n’a renvoyé aucune section de projets."
+         ],
+         "Result preview": [
+            "Aperçu du résultat"
+         ],
+         "Fill in the settings above to see how many projects will be displayed.": [
+            "Remplissez les paramètres ci-dessus pour voir combien de projets seront affichés."
+         ],
+         "Only ongoing projects": [
+            "Uniquement les projets en cours"
+         ],
+         "Only archived projects": [
+            "Uniquement les projets archivés"
+         ],
+         "%d project will be displayed.": [
+            "%d projet sera affiché.",
+            "%d projets seront affichés."
          ]
       }
    }

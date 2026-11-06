@@ -7,6 +7,7 @@ import {
 
 import studentProjectsIcon from './student-projects-icon'
 import InspectorControlsStudentProjects from './inspector'
+import ServerSideRender from '@wordpress/server-side-render'
 
 export const version = "v1.1.0";
 
@@ -58,6 +59,12 @@ registerBlockType( 'epfl/student-projects', {
         },
         zenSchool:{
             type: 'string',
+        },
+        zenTags:{
+            type: 'string',
+        },
+        zenMatchAllTags:{
+            type: 'boolean',
         }
     }),
     example: getTooltippedExample(),
@@ -82,13 +89,19 @@ registerBlockType( 'epfl/student-projects', {
             validationError = __('Please select an API source.', 'epfl');
         } else if (attributes.apiSource === 'zen') {
             if (!attributes.zenFetchMode || attributes.zenFetchMode === '') {
-                validationError = __('Please select a fetch mode (By Unit or By Professor SCIPER).', 'epfl');
+                validationError = __('Please select a fetch mode (By Unit, By Professor SCIPER, By Tag(s) or By School).', 'epfl');
             } else if (attributes.zenFetchMode === 'section' && (!attributes.zenSchool || attributes.zenSchool === '')) {
                 validationError = __('Please select a school.', 'epfl');
             } else if (attributes.zenFetchMode === 'section' && (!attributes.section || attributes.section === '')) {
                 validationError = __('Please select a unit.', 'epfl');
             } else if (attributes.zenFetchMode === 'sciper' && (!attributes.professorScipers || attributes.professorScipers.trim() === '')) {
                 validationError = __('Please enter at least one professor SCIPER.', 'epfl');
+            } else if (attributes.zenFetchMode === 'sciper' && !/^\d{6}(,\d{6})*$/.test(attributes.professorScipers.replace(/\s/g, '').replace(/^,+|,+$/g, ''))) {
+                validationError = __('Invalid professor SCIPER(s). A SCIPER is a 6-digit number; separate them with commas.', 'epfl');
+            } else if (attributes.zenFetchMode === 'school' && (!attributes.zenSchool || attributes.zenSchool === '')) {
+                validationError = __('Please select a school.', 'epfl');
+            } else if (attributes.zenFetchMode === 'tag' && (!attributes.zenTags || attributes.zenTags.trim() === '')) {
+                validationError = __('Please select at least one tag.', 'epfl');
             }
         } else if (attributes.apiSource === 'isa') {
             if (!attributes.section || attributes.section === '') {
@@ -116,6 +129,15 @@ registerBlockType( 'epfl/student-projects', {
                             color: '#856404'
                         }}>
                             <strong>{ __('Warning:', 'epfl') }</strong> {validationError}
+                        </div>
+                    )}
+                    {!validationError && attributes.apiSource === 'zen' && (
+                        // Live preview: the block rendered by the server, as on the published page
+                        <div className="epfl-sp-editor-preview" style={{ marginTop: '16px' }}>
+                            <ServerSideRender
+                                block="epfl/student-projects"
+                                attributes={ { ...attributes, asToolTip: false } }
+                            />
                         </div>
                     )}
                 </div>
